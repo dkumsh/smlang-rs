@@ -7,10 +7,10 @@ use smlang::statemachine;
 statemachine! {
     transitions: {
         *D0 +  ToD1 / to_d2  = D1,
-        D1(Option<Events>) +  ToD2 / to_d3  = D2,
-        D2(Option<Events>) +  ToD3 / to_d4  = D3,
-        D3(Option<Events>) +  ToD4 / to_d5  = D4,
-        D4(Option<Events>) +  ToD5  = D5,
+        D1(Events) +  ToD2 / to_d3  = D2,
+        D2(Events) +  ToD3 / to_d4  = D3,
+        D3(Events) +  ToD4 / to_d5  = D4,
+        D4(Events) +  ToD5  = D5,
     }
 }
 
@@ -18,20 +18,20 @@ statemachine! {
 pub struct Context;
 
 impl StateMachineContext for Context {
-    fn to_d2(&mut self) -> Option<Events> {
-        Some(Events::ToD2)
+    fn to_d4(&mut self, _state_data: Events) -> Result<Events, ()> {
+        Ok(Events::ToD4)
     }
 
-    fn to_d3(&mut self, _state_data: Option<Events>) -> Option<Events> {
-        Some(Events::ToD3)
+    fn to_d2(&mut self) -> Result<Events, ()> {
+        Ok(Events::ToD2)
     }
 
-    fn to_d4(&mut self, _state_data: Option<Events>) -> Option<Events> {
-        Some(Events::ToD4)
+    fn to_d5(&mut self, _state_data: Events) -> Result<Events, ()> {
+        Ok(Events::ToD5)
     }
 
-    fn to_d5(&mut self, _state_data: Option<Events>) -> Option<Events> {
-        Some(Events::ToD5)
+    fn to_d3(&mut self, _state_data: Events) -> Result<Events, ()> {
+        Ok(Events::ToD3)
     }
 }
 
@@ -58,10 +58,10 @@ fn main() {
         // good practice here NOT to use a wildcard to ensure you don't miss any states
         event = match state {
             States::D0 => None,
-            States::D1(event) => *event,
-            States::D2(event) => *event,
-            States::D3(event) => *event,
-            States::D4(event) => *event,
+            States::D1(event) => Some(*event),
+            States::D2(event) => Some(*event),
+            States::D3(event) => Some(*event),
+            States::D4(event) => Some(*event),
             States::D5 => None,
         };
     }

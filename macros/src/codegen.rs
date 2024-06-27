@@ -2,9 +2,9 @@
 
 use crate::parser::transition::visit_guards;
 use crate::parser::{lifetimes::Lifetimes, AsyncIdent, ParsedStateMachine};
-use proc_macro2::{Span, TokenStream};
+use proc_macro2::{Ident, Span, TokenStream};
 use quote::{format_ident, quote};
-use syn::{punctuated::Punctuated, token::Paren, Type, TypeTuple};
+use syn::Type;
 
 pub fn generate_code(sm: &ParsedStateMachine) -> proc_macro2::TokenStream {
     let (sm_name, sm_name_span) = sm
@@ -207,6 +207,12 @@ pub fn generate_code(sm: &ParsedStateMachine) -> proc_macro2::TokenStream {
         })
         .collect();
 
+    let guard_error = if sm.custom_guard_error {
+        quote! { Self::GuardError }
+    } else {
+        quote! { () }
+    };
+
     let out_states: Vec<Vec<Vec<TokenStream>>> = transitions
         .values()
         .map(|event_mappings| {
@@ -221,12 +227,12 @@ pub fn generate_code(sm: &ParsedStateMachine) -> proc_macro2::TokenStream {
                             match sm.state_data.data_types.get(&out_state.to_string()) {
                                 None => {
                                     quote! {
-                                        #out_state
+                                        #states_type_name::#out_state
                                     }
                                 }
                                 Some(_) => {
                                     quote! {
-                                        #out_state(_data)
+                                        #states_type_name::#out_state(_data)
                                     }
                                 }
                             }
@@ -303,12 +309,6 @@ pub fn generate_code(sm: &ParsedStateMachine) -> proc_macro2::TokenStream {
                             None => quote! {},
                         };
 
-                        let guard_error = if sm.custom_guard_error {
-                            quote! { Self::GuardError }
-                        } else {
-                            quote! { () }
-                        };
-
                         // Only add the guard if it hasn't been added before
                         if !guard_set.iter().any(|g| g == guard) {
                             guard_set.push(guard.clone());
@@ -339,15 +339,10 @@ pub fn generate_code(sm: &ParsedStateMachine) -> proc_macro2::TokenStream {
                         .data_types
                         .get(&transition.out_state.to_string())
                     {
-                        output_data.clone()
+                        quote! { Result<#output_data,#guard_error> }
                     } else {
                         // Empty return type
-                        Type::Tuple(TypeTuple {
-                            paren_token: Paren {
-                                span: Span::call_site(),
-                            },
-                            elems: Punctuated::new(),
-                        })
+                        quote! { Result<(),#guard_error> }
                     };
 
                     let state_data = match sm.state_data.data_types.get(state) {
@@ -413,7 +408,7 @@ pub fn generate_code(sm: &ParsedStateMachine) -> proc_macro2::TokenStream {
                         let streams: Vec<TokenStream> =
                             guard.iter()
                             .zip(action.iter().zip(out_state)).map(|(guard, (action,out_state))| {
-                                let (is_async_action,action_code) = generate_action(action, &temporary_context_call, g_a_param);
+                                let (is_async_action,action_code) = generate_action(action, &temporary_context_call, g_a_param, &error_type_name);
                                 is_async_state_machine |= is_async_action;
                                 if let Some(expr) = guard { // Guarded transition
                                     let mut is_async_expression = false;
@@ -465,7 +460,7 @@ pub fn generate_code(sm: &ParsedStateMachine) -> proc_macro2::TokenStream {
                                         self.context.log_guard(stringify!(#guard_expression), &guard_result);
                                         if guard_result.map_err(#error_type_name::GuardFailed)? {
                                               #action_code
-                                              let out_state = #states_type_name::#out_state;
+                                              let out_state = #out_state;
                                               self.context.log_state_change(&out_state);
                                               self.state = Some(out_state);
                                               return self.state()
@@ -474,7 +469,7 @@ pub fn generate_code(sm: &ParsedStateMachine) -> proc_macro2::TokenStream {
                                 } else { // Unguarded transition
                                     quote!{
                                        #action_code
-                                       let out_state = #states_type_name::#out_state;
+                                       let out_state = #out_state;
                                        self.context.log_state_change(&out_state);
                                        self.state = Some(out_state);
                                        return self.state();
@@ -618,6 +613,8 @@ pub fn generate_code(sm: &ParsedStateMachine) -> proc_macro2::TokenStream {
             TransitionsFailed,
             /// When guard is failed.
             GuardFailed(T),
+            /// When action returns Err
+            ActionFailed(T),
             /// When the state has an unexpected value.
             ///
             /// This can happen if there is a bug in the code generated by smlang,
@@ -702,6 +699,7 @@ fn generate_action(
     action: &Option<AsyncIdent>,
     temporary_context_call: &TokenStream,
     g_a_param: &TokenStream,
+    error_type_name: &Ident,
 ) -> (bool, TokenStream) {
     let mut is_async = false;
     let code = if let Some(AsyncIdent {
@@ -717,7 +715,7 @@ fn generate_action(
         };
         quote! {
             // ACTION
-            let _data = self.context.#action_ident(#temporary_context_call #g_a_param) #action_await;
+            let _data = self.context.#action_ident(#temporary_context_call #g_a_param) #action_await .map_err(#error_type_name::ActionFailed)?;
             self.context.log_action(stringify!(#action_ident));
         }
     } else {

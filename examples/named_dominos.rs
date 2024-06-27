@@ -8,10 +8,10 @@ statemachine! {
     name: Dominos,
     transitions: {
         *D0 +  ToD1 / to_d2  = D1,
-        D1(Option<DominosEvents>) +  ToD2 / to_d3  = D2,
-        D2(Option<DominosEvents>) +  ToD3 / to_d4  = D3,
-        D3(Option<DominosEvents>) +  ToD4 / to_d5  = D4,
-        D4(Option<DominosEvents>) +  ToD5  = D5,
+        D1(DominosEvents) +  ToD2 / to_d3  = D2,
+        D2(DominosEvents) +  ToD3 / to_d4  = D3,
+        D3(DominosEvents) +  ToD4 / to_d5  = D4,
+        D4(DominosEvents) +  ToD5  = D5,
     }
 }
 
@@ -19,20 +19,20 @@ statemachine! {
 pub struct Context;
 
 impl DominosStateMachineContext for Context {
-    fn to_d2(&mut self) -> Option<DominosEvents> {
-        Some(DominosEvents::ToD2)
+    fn to_d2(&mut self) -> Result<DominosEvents, ()> {
+        Ok(DominosEvents::ToD2)
     }
 
-    fn to_d3(&mut self, _state_data: Option<DominosEvents>) -> Option<DominosEvents> {
-        Some(DominosEvents::ToD3)
+    fn to_d4(&mut self, _state_data: DominosEvents) -> Result<DominosEvents, ()> {
+        Ok(DominosEvents::ToD4)
     }
 
-    fn to_d4(&mut self, _state_data: Option<DominosEvents>) -> Option<DominosEvents> {
-        Some(DominosEvents::ToD4)
+    fn to_d5(&mut self, _state_data: DominosEvents) -> Result<DominosEvents, ()> {
+        Ok(DominosEvents::ToD5)
     }
 
-    fn to_d5(&mut self, _state_data: Option<DominosEvents>) -> Option<DominosEvents> {
-        Some(DominosEvents::ToD5)
+    fn to_d3(&mut self, _state_data: DominosEvents) -> Result<DominosEvents, ()> {
+        Ok(DominosEvents::ToD3)
     }
 }
 
@@ -59,10 +59,10 @@ fn main() {
         // good practice here NOT to use a wildcard to ensure you don't miss any states
         event = match state {
             DominosStates::D0 => None,
-            DominosStates::D1(event) => *event,
-            DominosStates::D2(event) => *event,
-            DominosStates::D3(event) => *event,
-            DominosStates::D4(event) => *event,
+            DominosStates::D1(event) => Some(*event),
+            DominosStates::D2(event) => Some(*event),
+            DominosStates::D3(event) => Some(*event),
+            DominosStates::D4(event) => Some(*event),
             DominosStates::D5 => None,
         };
     }
