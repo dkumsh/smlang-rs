@@ -34,7 +34,7 @@ statemachine! {
 pub struct Context;
 
 impl StateMachineContext for Context {
-    type GuardError = GuardError; // Guard1 has access to the data from Event1
+    type ErrorType = GuardError; // Guard1 has access to the data from Event1
     fn guard1(&self, _event_data: &MyEventData) -> Result<bool, GuardError> {
         Err(GuardError::Custom)
     }
