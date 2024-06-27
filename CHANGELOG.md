@@ -27,6 +27,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - `StateMachine::new` and `StateMachine::new_with_state` are now const functions
 - Fixed clippy warnings
 - [breaking] Changed guard functions return type from Result<(),_> to Result<bool,_>
+- [breaking] Changed action functions return type from () to Result<NextStateData,_>
+- [breaking] Made guard's self argument immutable
+- [breaking] Renamed GuardError to ErrorType as it is now used for both guards and actions
 
 ## [v0.6.0] - 2022-11-02
 
