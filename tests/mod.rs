@@ -20,15 +20,15 @@ fn multiple_lifetimes() {
     struct Context;
 
     impl StateMachineContext for Context {
-        fn guard3(&mut self, _event_data: &Z) -> Result<bool, ()> {
+        fn guard3(&self, _event_data: &Z) -> Result<bool, ()> {
             Ok(true)
         }
 
-        fn guard1(&mut self, _event_data: &X) -> Result<bool, ()> {
+        fn guard1(&self, _event_data: &X) -> Result<bool, ()> {
             Ok(true)
         }
 
-        fn guard2(&mut self, _state_data: &X, _event_data: &Y) -> Result<bool, ()> {
+        fn guard2(&self, _state_data: &X, _event_data: &Y) -> Result<bool, ()> {
             Ok(true)
         }
 
