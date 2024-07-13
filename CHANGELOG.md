@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- Add support for implicit and wildcard internal transitions
+
 ## [0.7.0] - 2024-07-03
 
 ### Added
